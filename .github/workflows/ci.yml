@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # The package pulls in torch / numpy / pandas / xgboost; the dev extra
+          # adds pytest, pytest-cov and the linters. The tests import the
+          # package, so the runtime dependencies have to be installed too.
+          pip install -e ".[dev]"
+
+      - name: Lint with flake8
+        run: |
+          flake8 tpclass/ tests/ --max-line-length=100 --extend-ignore=E203,W503
+
+      - name: Type check with mypy
+        run: |
+          mypy tpclass/ --ignore-missing-imports
+        continue-on-error: true  # Some mypy errors are acceptable initially
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - name: Check markdown links
+        run: |
+          pip install markdown-link-check
+          find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" -print0 | xargs -0 -n1 markdown-link-check
+        continue-on-error: true

@@ -1,0 +1,106 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tpclass-bio"
+version = "1.0.0"
+description = "TPClass: A Two-Phase Predictor for Membrane Transporter Annotation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "TPClass Development Team"},
+]
+keywords = [
+    "transporter prediction",
+    "membrane protein",
+    "ESM-2",
+    "protein language model",
+    "TCDB",
+    "HMO",
+    "terpenoid",
+    "isobutanol",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.40.0",
+    "sentencepiece>=0.2.0",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "xgboost>=2.0",
+    "einops>=0.7",
+    "biopython>=1.81",
+    "joblib>=1.3",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "flake8>=6.0",
+    "mypy>=1.0",
+    "isort>=5.12",
+]
+gpu = [
+    "faiss-gpu-cu12",
+]
+# fair-esm is required to use the published .pt ESM-2 checkpoints and to
+# train the Phase 2 contrastive head.
+esm = [
+    "fair-esm>=2.0.0",
+]
+tools = [
+    "s4pred",
+]
+
+[project.scripts]
+tpclass = "tpclass.cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/Chao-NNU/TPClass"
+"Bug Tracker" = "https://github.com/Chao-NNU/TPClass/issues"
+"Documentation" = "https://github.com/Chao-NNU/TPClass/tree/main/docs"
+
+[tool.setuptools]
+packages = [
+    "tpclass",
+    "tpclass.core",
+    "tpclass.filters",
+    "tpclass.analysis",
+    "tpclass.train",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --cov=tpclass --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.10"
+strict_optional = true
+warn_unused_ignores = true

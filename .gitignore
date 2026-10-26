@@ -1,0 +1,146 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.python-version
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.egg-info
+
+# mypy
+.mypy_cache/
+
+# Distribution caches
+.cache/
+__pypackages__/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# ============================================
+# TPClass-specific ignores
+# ============================================
+
+# Large model files (download via models/download.sh or HuggingFace)
+models/esm2_3b/
+models/esm2_650m/
+models/v3_retrained_3b/phase1/*.pt
+models/v3_retrained_3b/phase2/*.pt
+models/v3_retrained_3b/*.pkl
+models/v3_retrained_3b/*.json
+models/*/checkpoints/
+models/*/optimizer*.pt
+*.pt
+*.pth
+*.bin
+*.h5
+*.onnx
+*.pkl
+
+# Reference embeddings (regenerable from refs FASTA)
+models/ref_embeddings_*.npz
+models/ref_*_proteins.fasta
+
+# ESM-2 embeddings cache (large)
+*.npz
+!examples/*/*.npz
+!tests/fixtures/*.npz
+
+# Large FASTA inputs (download separately)
+inputs/uniprot_sprot.fasta
+inputs/max.fasta
+inputs/*.fasta
+!examples/*/*.fasta
+!data/refs/*.fasta
+!tests/fixtures/*.fasta
+
+# Output files (regenerable)
+outputs/
+results/*.csv
+results/*.tsv
+results/*.txt
+results/*.png
+results/*.pdf
+results/*.xlsx
+!examples/*/*.csv
+!results/README.md
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*~
+.DS_Store
+
+# Big temporary directories
+tmp/
+temp/
+.cache/
+
+# Local config overrides
+.env
+.env.local
+config.local.yaml
+
+# Papers in draft state (kept in working dir, not in repo)
+manuscript_*.docx
+初稿*.docx
+初版*.docx
+*草稿*.docx
+*叶改*.docx
+YECHAO*.docx
+*框架*.docx
+*_preV*.docx
+*_tmp*.docx
+*_copy.docx
+
+# Paper final versions are kept in paper/ — do not add ignore
+# But exclude _old versions
+paper/*_old.*
+paper/*_preV*.docx

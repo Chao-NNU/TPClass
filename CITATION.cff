@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "TPClass: A Two-Phase Predictor for Membrane Transporter Annotation"
+date-released: 2026-10-19
+version: "v1.0.0"
+license: MIT
+repository-code: "https://github.com/your-lab/TPClass"
+keywords:
+  - transporter prediction
+  - membrane protein
+  - ESM-2
+  - protein language model
+  - TCDB
+  - HMO
+  - terpenoid
+  - isobutanol
+authors:
+  - family-names: "Ye"
+    given-names: "Chao"
+    affiliation: "Food and Pharmaceutical Engineering, [University]"
+  - family-names: "[Co-authors]"
+    given-names: "[Initials]"
+    affiliation: "[Affiliation]"
+preferred-citation:
+  type: article
+  title: "TPClass: A Two-Phase Predictor for Membrane Transporter Annotation"
+  journal: "[Journal name]"
+  year: 2026
+  doi: "[DOI]"
