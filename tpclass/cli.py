@@ -160,6 +160,82 @@ def cmd_compare_reports(args):
 
 
 # ══════════════════════════════════════════════════════════════════════════
+#  paired-test
+# ══════════════════════════════════════════════════════════════════════════
+def cmd_paired_test(args):
+    """Paired significance tests between two configurations."""
+    import pandas as pd
+
+    from tpclass.analysis.paired_tests import compare_config_groups
+
+    df = pd.read_csv(args.preds)
+    if args.pairs:
+        pairs = []
+        for spec in args.pairs:
+            parts = [p.strip() for p in spec.split(",")]
+            if len(parts) != 2:
+                raise SystemExit(f"--pairs entry must be 'A,B', got {spec!r}")
+            pairs.append((parts[0], parts[1], f"{parts[0]} vs {parts[1]}"))
+    else:
+        pairs = [
+            ("3B_cached", "650M_cached", "3B vs 650M (cached)"),
+            ("3B_fresh", "650M_fresh", "3B vs 650M (fresh)"),
+            ("650M_fresh", "650M_cached", "650M cached -> fresh"),
+            ("3B_fresh", "3B_cached", "3B cached -> fresh"),
+        ]
+
+    rows = compare_config_groups(df, pairs, n_boot=args.n_boot, seed=args.seed)
+    out = pd.DataFrame(rows)
+    out.to_csv(args.out, index=False, encoding="utf-8-sig")
+    for r in rows:
+        print(
+            f"{r['comparison']}: n={r['n']}  McNemar(correctness) "
+            f"n01={r['mcnemar_n01']} n10={r['mcnemar_n10']} p={r['mcnemar_p']:.3e}  "
+            f"| label-variant p={r['mcnemar_label_variant_p']:.3e}  "
+            f"Jaccard={r['pos_jaccard']:.4f}"
+        )
+    print(f"Saved {args.out}")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  family-metrics
+# ══════════════════════════════════════════════════════════════════════════
+def cmd_family_metrics(args):
+    """Family-level precision / fuzzy recall / strict recall."""
+    from tpclass.analysis.family_metrics import evaluate_from_files
+
+    metrics = evaluate_from_files(
+        pred_csv=args.pred_csv,
+        gt_tsv=args.gt_tsv,
+        out_csv=args.out,
+        fuzzy_rule=args.fuzzy_rule,
+        query_col=args.query_col,
+        family_col=args.family_col,
+        is_yes_col=args.is_yes_col,
+        gt_acc_col=args.gt_acc_col,
+        gt_family_col=args.gt_family_col,
+        name=args.name,
+    )
+    row = metrics.as_row()
+    print(f"{metrics.name}  (fuzzy rule: {metrics.fuzzy_rule})")
+    print(f"  Phase 1 YES with TC:        {metrics.n_pred_yes_with_family}")
+    print(f"  Matched GT with a family:    {metrics.n_matched}")
+    print(f"  Predicted YES inside GT:     {metrics.n_yes_in_gt}")
+    print(f"  Correct (4-digit match):    {metrics.n_correct}")
+    print(f"  GT size (4-digit):           {metrics.n_gt}")
+    print(f"  Precision (4-digit TC):      {metrics.precision_4digit:.4f}")
+    print(f"    with_family denominator:    {metrics.precision_with_family:.4f}")
+    print(f"    all_yes denominator:        {metrics.precision_all_yes:.4f}")
+    print(f"  Coverage (TC assign):        {metrics.coverage_4digit:.4f}")
+    print(f"  Recall fuzzy (selected):     {metrics.recall_fuzzy:.4f}")
+    print(f"  Recall fuzzy (with_family):  {row['recall_fuzzy_matched']:.4f}")
+    print(f"  Recall fuzzy (all_yes):      {row['recall_fuzzy_all_yes']:.4f}")
+    print(f"  Recall strict:               {metrics.recall_strict:.4f}")
+    if args.out:
+        print(f"Saved {args.out}")
+
+
+# ══════════════════════════════════════════════════════════════════════════
 #  compute-refs
 # ══════════════════════════════════════════════════════════════════════════
 def cmd_compute_refs(args):
@@ -421,6 +497,49 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--tol", type=float, default=1e-4, help="Numeric tolerance")
     p.add_argument("--show", type=int, default=5, help="Mismatching rows to print per column")
     p.set_defaults(func=cmd_compare_reports)
+
+    # ---- paired-test --------------------------------------------------------
+    p = sub.add_parser(
+        "paired-test",
+        help="Paired significance tests between two TPClass configurations",
+    )
+    p.add_argument("--preds", required=True, help="Long-format predictions CSV")
+    p.add_argument("--out", default="paired_test.csv", help="Output CSV")
+    p.add_argument(
+        "--pairs",
+        nargs="+",
+        help='Comparisons as "A,B" (default: the four Table-1 configurations)',
+    )
+    p.add_argument("--n_boot", type=int, default=10000)
+    p.add_argument("--seed", type=int, default=0)
+    p.set_defaults(func=cmd_paired_test)
+
+    # ---- family-metrics -----------------------------------------------------
+    p = sub.add_parser(
+        "family-metrics",
+        help="Family-level (4-digit TC) precision / fuzzy recall / strict recall",
+    )
+    p.add_argument("--pred_csv", required=True, help="Prediction table (final_report.csv)")
+    p.add_argument("--gt_tsv", required=True, help="Ground-truth TSV")
+    p.add_argument("--out", help="Output summary CSV")
+    p.add_argument(
+        "--fuzzy_rule",
+        choices=["with_family", "all_yes"],
+        default="with_family",
+        help=(
+            "How fuzzy recall is counted: 'with_family' counts only predictions "
+            "that received a TC family (the rule of eval_family_precision.py), "
+            "'all_yes' counts every predicted positive (the rule of "
+            "eval_hybrid_v3.py).  Both are always reported."
+        ),
+    )
+    p.add_argument("--query_col", default="query")
+    p.add_argument("--family_col", default="tc_number")
+    p.add_argument("--is_yes_col", default="is_transport")
+    p.add_argument("--gt_acc_col", default="accession")
+    p.add_argument("--gt_family_col", default="tc_family_4digit")
+    p.add_argument("--name", default="")
+    p.set_defaults(func=cmd_family_metrics)
 
     # ---- compute-refs ------------------------------------------------------
     p = sub.add_parser("compute-refs", help="Compute mean-pooled ESM-2 embeddings for a FASTA")

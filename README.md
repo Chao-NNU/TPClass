@@ -183,7 +183,7 @@ provides:
 |---|---|
 | Phase 1 / Phase 2 architectures, pooling masks, ensemble weights | Implemented in `tpclass/core/` and identical to the released pipeline |
 | Phase 1 / Phase 2 training code | `tpclass/train/` (MLP, XGBoost, isotonic calibration, SupCon contrastive head) |
-| Dataset splitting | `tpclass split` -- `--strategy stratified` reproduces the released random stratified split; `--strategy cluster` keeps homologous proteins in one subset (k-mer Jaccard ≥ 0.5 on 5-mers) and is the leakage-free alternative |
+| Dataset splitting | `tpclass split` -- `--strategy stratified` reproduces the released random stratified split; `--strategy cluster` keeps sequences with a 5-mer Jaccard similarity of at least 0.5 in the same subset.  This reduces k-mer-level leakage; it is not a guarantee of homology-independent evaluation, because k-mer similarity is not sequence identity (see `scripts/README.md`) |
 | Pretrained weights, TCDB reference index, TCDB annotation table | Downloaded by `bash models/download.sh` (HuggingFace `Chao-NNU/TPClass`) |
 | Raw training/evaluation scripts | **Shipped verbatim** in `scripts/` (35 Python scripts) plus the shell drivers in `scripts/runs/` that were actually used to execute the published runs. See `scripts/README.md` for the script-to-paper-element mapping |
 | Result tables, per-species outputs, trained checkpoints | **Not shipped**; the numbers quoted above come from the original working copy, so the *inputs* must be re-generated before the scripts can be re-run |

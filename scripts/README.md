@@ -143,9 +143,16 @@ with `--help` to see the defaults.
   same training run; that is why the script derives `REF_EMB` / `REF_META`
   from the checkpoint directory and warns when they do not match.
 
-- `split_tcdb.py` performs a random split stratified by TC family.  For
-  leakage-free evaluation use `tpclass split --strategy cluster`, which keeps
-  homologous proteins in the same subset.
+- `split_tcdb.py` performs a random split stratified by TC family, which
+  places homologues in different subsets.  `tpclass split --strategy cluster`
+  reduces that leakage by keeping sequences with a 5-mer Jaccard similarity of
+  at least 0.5 in the same subset.  Note that k-mer similarity is *not* the
+  same as sequence identity: two proteins that are 80 % identical over their
+  full length can still have a 5-mer Jaccard far below 0.5 when the
+  substitutions are scattered, so this is a k-mer-level leakage reduction and
+  not a guarantee of homology-independent evaluation.  A strict check should
+  cluster by alignment identity and coverage and verify the nearest
+  cross-split neighbour.
 
 - **Two different BLAST acceptance criteria are in use, and they are not
   interchangeable.**  `eval_blast_family_precision.py` uses the cross-species
@@ -166,3 +173,71 @@ with `--help` to see the defaults.
   `ESM2_PATH`).  The script compares the two strings and reuses one ESM-2
   object when they are identical, which would let the Phase 2 fine-tuned
   weights overwrite the Phase 1 backbone.
+
+## Implementation details worth knowing before re-running anything
+
+These are properties of the released code, verified against the sources in
+this directory.  They are documented here because they change what the
+published numbers mean; the scripts themselves are shipped unchanged.
+
+### Phase 2 reads a fixed layer, but Phase 2 was trained on the last layer
+
+`train_phase2_contrastive.py` encodes with `repr_layers=[esm.num_layers]`
+(last layer: 33 for 650M, 36 for 3B), and the TCDB reference index was built
+with that encoder.  `predict_transport_family_v3.py` encodes queries with
+`repr_layers=[33]` regardless of the backbone.  For 650M the two agree; for
+the 36-layer 3B model the query is read from layer 33 while the reference
+index was built from layer 36, so the projection head sees an input
+distribution it was not trained on.  The `tpclass` package uses the last
+layer and therefore does not have this mismatch.
+
+### A single-backbone run can reuse one ESM-2 object for both stages
+
+`predict_transport_family_v3.py` loads a second ESM-2 only when the strings
+`PHASE2_ESM2_PATH` and `ESM2_PATH` differ; otherwise Phase 2 falls back to the
+Phase 1 backbone.  Loading the Phase 2 checkpoint then writes its partially
+fine-tuned `esm.*` weights into that shared backbone, so the Phase 1 features
+extracted afterwards come from a backbone that is no longer the pretrained one
+Phase 1 was trained with.  In the cascade configuration the two paths differ by
+construction, so the shared-object case only arises in single-backbone runs -
+which is where the cached-versus-fresh difference of the held-out benchmark
+should be checked first.
+
+### "Fuzzy recall" is computed under two different rules
+
+`eval_family_precision.py` (the family-precision tables) counts a protein
+towards fuzzy recall only when it was predicted YES **and** received a 4- or
+5-digit TC assignment **and** is in the ground truth; its precision uses the
+same denominator.  `eval_hybrid_v3.py` (the hybrid-strategy table) counts
+every predicted-YES protein inside the ground truth, whether or not it
+received a family, and divides the precision by the same count.  Both are
+internally consistent (`strict = fuzzy x precision`), but the two "fuzzy
+recall" values are not the same quantity.  `tpclass family-metrics` computes
+both rules from one implementation and reports them side by side.
+
+### The hybrid table covers six species
+
+`eval_hybrid_v3.py` lists six species in `SPECIES`.  The extended
+eight-species comparison needs the two remaining species added to that list
+(or the per-species results taken from the eight-species runs).
+
+### The paired test in `paired_test_heldout.py` is not the accuracy test
+
+Its `mcnemar_exact` counts the pairs where the two models predict *different
+labels* and applies an exact binomial test to them.  That measures whether the
+two models predict a different number of transporters; it does not measure
+whether one of them is more accurate.  A model that is right wherever the other
+is wrong produces the same label disagreement as the reverse, so the test can
+return `p = 1` for a model that is perfect and another that is entirely wrong.
+The accuracy version of McNemar's test counts the proteins where one model is
+correct and the other is not; it is implemented in
+`tpclass.analysis.paired_tests` and exposed as `tpclass paired-test`.
+
+### The family evaluation scores the top-1 retrieval, not the majority vote
+
+Phase 2 aggregates the TC **family** of the retrieved references by majority
+vote, while the 4-digit sub-subfamily comes from the top-1 hit
+(`tc_number`).  Both evaluation scripts read `tc_number` and truncate it to
+four components, so the reported 4-digit precision and recall are top-1
+retrieval metrics.  The voted family is exposed separately as `tc_family`.
+

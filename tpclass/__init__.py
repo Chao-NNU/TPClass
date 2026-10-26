@@ -19,6 +19,8 @@ from tpclass.filters.substrate import SubstrateFilter
 from tpclass.filters.three_layer import ThreeLayerFilter
 from tpclass.analysis.esm_vs_blast import compare_esm_vs_blast
 from tpclass.analysis.compare_reports import compare_reports, format_report
+from tpclass.analysis.family_metrics import evaluate_family, evaluate_from_files
+from tpclass.analysis.paired_tests import compare_models, mcnemar_exact
 
 __all__ = [
     "TPClassPredictor",
@@ -30,4 +32,8 @@ __all__ = [
     "compare_esm_vs_blast",
     "compare_reports",
     "format_report",
+    "evaluate_family",
+    "evaluate_from_files",
+    "compare_models",
+    "mcnemar_exact",
 ]

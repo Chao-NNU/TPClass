@@ -181,6 +181,58 @@ string.  Empty cells stay empty and are never treated as zero.  The command
 exits with status 1 when the tables differ, so it can be used in a shell
 check.
 
+### `tpclass paired-test`
+
+Paired significance tests between two configurations of the held-out
+benchmark: an accuracy-based McNemar test, a paired bootstrap confidence
+interval, and the Jaccard overlap of the predicted-positive sets.
+
+```bash
+tpclass paired-test \
+    --preds <all_preds.csv> \
+    [--out <paired_test.csv>] \
+    [--pairs "3B_cached,650M_cached" "650M_fresh,650M_cached"] \
+    [--n_boot <int, default 10000>] \
+    [--seed <int, default 0>]
+```
+
+The input is the long-format table written by `scripts/dump_preds.py`
+(`protein_id`, `config`, `y_true`, `y_pred`).  Without `--pairs` the four
+Table-1 comparisons are used.
+
+The McNemar test here counts the proteins where one model is **correct** and
+the other is **not**.  The released `scripts/paired_test_heldout.py` instead
+counts the pairs where the two models predict *different labels*, which
+measures the difference in the number of predicted transporters and can
+return `p = 1` for a perfect model against a model that is entirely wrong.
+Both variants are reported in the output columns
+(`mcnemar_p` and `mcnemar_label_variant_p`).
+
+### `tpclass family-metrics`
+
+Family-level (4-digit TC) precision, fuzzy recall and strict recall, computed
+from a single implementation.
+
+```bash
+tpclass family-metrics \
+    --pred_csv <final_report.csv> \
+    --gt_tsv <ground_truth.tsv> \
+    [--out <summary.csv>] \
+    [--fuzzy_rule {with_family|all_yes}] \
+    [--query_col query] [--family_col tc_number] [--is_yes_col is_transport]
+```
+
+The released pipeline computes "fuzzy recall" under two different rules:
+`scripts/eval_family_precision.py` counts only predictions that received a TC
+family, while `scripts/eval_hybrid_v3.py` counts every predicted positive
+inside the ground truth.  Both rules are always reported
+(`recall_fuzzy_matched` and `recall_fuzzy_all_yes`); `--fuzzy_rule` selects
+which one fills `recall_fuzzy`.
+
+Note that the 4-digit metric scores the **top-1** retrieval
+(`tc_number`, truncated to four components).  The majority vote in Phase 2
+aggregates the 3-digit family and is exposed separately as `tc_family`.
+
 ### `tpclass compute-refs`
 
 Compute mean-pooled ESM-2 embeddings for a reference FASTA.

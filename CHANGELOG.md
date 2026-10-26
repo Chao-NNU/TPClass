@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **McNemar's test.** `scripts/paired_test_heldout.py` counts the pairs where
+  the two models predict *different labels* and applies an exact binomial test
+  to them.  That measures whether the two models predict a different number
+  of transporters, not whether one of them is more accurate: a model that is
+  right wherever the other is wrong produces the same label disagreement as the
+  reverse, so the test returns `p = 1` for a perfect model against a model
+  that is entirely wrong.  The accuracy-based version of McNemar's test --
+  which counts the proteins where one model is correct and the other is not --
+  is implemented in `tpclass.analysis.paired_tests` and exposed as
+  `tpclass paired-test`.  The released script is shipped unchanged, so the
+  paired statistics reported in the paper have to be regenerated with the
+  corrected test.
+- **Two different "fuzzy recall" definitions.** `eval_family_precision.py`
+  counts a protein towards fuzzy recall only when it was predicted YES *and*
+  received a TC family *and* is in the ground truth; `eval_hybrid_v3.py`
+  counts every predicted-YES protein inside the ground truth, and uses the
+  same count as the precision denominator.  Both are internally consistent
+  (`strict = fuzzy x precision`), but the two fuzzy-recall values are not the
+  same quantity, so the family-precision tables and the hybrid table are not
+  directly comparable.  `tpclass family-metrics` computes both rules from a
+  single implementation and reports them side by side.
+
 ### Added
 
 - The scripts that produced the published numbers are now shipped verbatim in
